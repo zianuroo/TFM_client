@@ -25,8 +25,6 @@ void dataSave(uint8_t enchan_adc_client, uint8_t nchan_adc_client, int16_t M_cli
 		}
 	}
 	
-	
-	
 	//printf("Proceeding to save the results...\n");
 	for (int j=0;j<nchan_adc_client;j++) {
 		n += chan_no(enchan_adc_client>>n);
@@ -94,9 +92,16 @@ void printValues(int received_block, uint16_t ndata_adc_client){
 					//printf("	%d \n", data_adc_client[received_block][i]);
 				}				
 			}
-			
+}
 
-
+void printDemoValues(uint8_t nchan_adc_client, int received_block, uint16_t ndata_adc_client){
+	for (int k=0;k<ndata_adc_client/nchan_adc_client;k++) {
+		printf("	| ");
+		for (int j=0;j<nchan_adc_client;j++) {
+			printf("%6d | ", data_adc_client[received_block][(j+3)+nchan_adc_client*k]);
+		}
+		printf("\n");
+	}
 }
 
 

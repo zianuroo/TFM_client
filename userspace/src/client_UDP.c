@@ -30,6 +30,7 @@ int client_UDP()
 	int iteration = 1;
 	int received_block = 0;
 	char delim[] = " ";
+	int demo = 0;
 	
 	uint16_t nblock_adc_client; 	// Define el tamaño del bloque de datos de un canal
 	uint8_t nchan_adc_client;	// Define el numero de canales activados [0 - 8]
@@ -84,39 +85,54 @@ int client_UDP()
 		}
 		// Si estamos en un stream de datos, se lee el bloque entero de datos.
 		else{
-		
-		    	// Receive the server's response:
+			// Receive the server's response:
 			if(recvfrom(sockfd, &data_adc_client[received_block][0], sizeof(uint16_t)*(ndata_adc_client + 4), 0, (SA*)&servaddr, (socklen_t *)&len) < 0){
 				printf("Error while receiving server's msg\n");
-				
 			}
 			
 			// Impresion de valores recibidos
-			//printValues(received_block, ndata_adc_client);
+			printDemoValues(nchan_adc_client, received_block, ndata_adc_client);
 
 			received_block++;
-			// Cuando ya se han recibido todos los bloques se vuelve a enviar START. El server respondera con END.
-			if(received_block == M_client){
-				readdata = 0;
-				received_block = 0;
-				bzero(buff, MAX);
-				strncpy(buff, CMD_CLIENT[2], sizeof(buff));
-				// Send the message to server:
-				if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
-					printf("Unable to send message\n");
-					
+			if(demo == 0){
+				// Cuando ya se han recibido todos los bloques se vuelve a enviar START. El server respondera con END.
+				if(received_block == M_client){
+					readdata = 0;
+					received_block = 0;
+					bzero(buff, MAX);
+					strncpy(buff, CMD_CLIENT[2], sizeof(buff));
+					// Send the message to server:
+					if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
+						printf("Unable to send message\n");
+					}
+					else{
+						//printf("Command sent: %s\n", buff);
+					}
 				}
 				else{
-					//printf("Command sent: %s\n", buff);
+					bzero(buff, MAX);
+					strncpy(buff, CMD_CLIENT[2], sizeof(buff));
+					// Send the message to server:
+					if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
+						printf("Unable to send message\n");
+					}
+					else{
+						//printf("Command sent: %s\n", buff);
+					}
 				}
 			}
 			else{
+				if (received_block == 2){ 
+					received_block = 0;
+				}
+				else{
+					received_block = 1;
+				}
 				bzero(buff, MAX);
 				strncpy(buff, CMD_CLIENT[2], sizeof(buff));
 				// Send the message to server:
 				if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
 					printf("Unable to send message\n");
-					
 				}
 				else{
 					//printf("Command sent: %s\n", buff);
@@ -152,12 +168,28 @@ int client_UDP()
 				else if(infonum == 3){
 					M_client = atoi(aux_str);
 					printf("	M: %d\n", M_client);
+					if (M_client == -1){
+						printf("		Transmision de datos continua\n");
+						demo = 1;
+					}
 				}
 				infonum++;
 			}
 			// Una vez se sabe el tamaño de la transmision, se puede asignar memoria dinamica para guardar la cantidad de datos necesaria
 			ndata_adc_client = nblock_adc_client * nchan_adc_client;
 			printf("	Tamaño ndata: %d\n", ndata_adc_client);
+			printf("Valores recibidos\n");
+			printf("	| ");
+			n = 0;
+			for (int j=0;j<nchan_adc_client;j++) {
+				n += chan_no(enchan_adc_client>>n);
+				printf("  AI%d  | ", n);
+			}
+			printf("\n");
+			if (demo == 1){
+				M_client = 2;
+			}
+
 			/* allocate rows */
 			if((data_adc_client = malloc(M_client * sizeof(int16_t *))) == NULL){
 				printf("Failed to allocate rows");
@@ -183,20 +215,17 @@ int client_UDP()
 			
 			}
 			//printf("Comienzo de stream de datos...\n");
-		
-		
-		bzero(buff, MAX);
-		strncpy(buff, CMD_CLIENT[2], sizeof(buff));
-		// Send the message to server:
-		if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
-			printf("Unable to send message\n");
-			
-		}
-		else{
-			//printf("Command sent: %s\n", buff);
-		}
-		readdata = 1;
-		
+			bzero(buff, MAX);
+			strncpy(buff, CMD_CLIENT[2], sizeof(buff));
+			// Send the message to server:
+			if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
+				printf("Unable to send message\n");
+				
+			}
+			else{
+				//printf("Command sent: %s\n", buff);
+			}
+			readdata = 1;
 		}
 		
 		// Respuesta END
@@ -221,14 +250,11 @@ int client_UDP()
 			//printf("Client Exit...\n");
 			break;
 		}
-		
 		//printf("Comando enviado : %s \n", buff);
-		
 	}
 	
 	// Transmision de datos acabada se reconstruye la señal para que sea procesable a la hora de guardarlo en un txt
 	dataSave(enchan_adc_client, nchan_adc_client, M_client, ndata_adc_client);
-	
 	/* free cols */
 	int i;
 	for (i=0; i<M_client; i++) {
@@ -239,7 +265,6 @@ int client_UDP()
 	/* free rows */
 	free(data_adc_client);
 	data_adc_client = NULL;
-
 	// close the socket
 	close(sockfd);
 

@@ -27,6 +27,7 @@ int client_TCP()
 	int iteration = 1;
 	int received_block = 0;
 	char delim[] = " ";
+	int demo = 0;
 	
 	uint16_t nblock_adc_client; 	// Define el tamaño del bloque de datos de un canal
 	uint8_t nchan_adc_client;	// Define el numero de canales activados [0 - 8]
@@ -81,9 +82,6 @@ int client_TCP()
 		// Si estamos en un stream de datos, se lee el bloque entero de datos.
 		else{
 			ssize_t bytes_read = read(sockfd, &data_adc_client[received_block][0], sizeof(uint16_t)*(ndata_adc_client + 4));
-			//printf("bytes read: %ld\n", bytes_read);
-			//printf("sizeof int: %ld\n", sizeof(uint16_t));
-			//printf("tranmsission byte size: %ld\n", bytes_read*sizeof(uint16_t));
 			if (bytes_read == -1) {
 				printf("read error \n"); // handle error
 			}
@@ -92,18 +90,34 @@ int client_TCP()
 			}
 
 			// Impresion de valores recibidos
-			//printValues(received_block, ndata_adc_client);
+			printDemoValues(nchan_adc_client, received_block, ndata_adc_client);
 
 			received_block++;
 			// Cuando ya se han recibido todos los bloques se vuelve a enviar START. El server respondera con END.
-			if(received_block == M_client){
-				readdata = 0;
-				received_block = 0;
-				bzero(buff, MAX);
-				strncpy(buff, CMD_CLIENT[2], sizeof(buff));
-				write(sockfd, buff, sizeof(buff));
+			if(demo == 0){
+				if(received_block == M_client){
+					readdata = 0;
+					received_block = 0;
+					bzero(buff, MAX);
+					strncpy(buff, CMD_CLIENT[2], sizeof(buff));
+					write(sockfd, buff, sizeof(buff));
+				}
+				else{
+					bzero(buff, MAX);
+					strncpy(buff, CMD_CLIENT[2], sizeof(buff));
+					write(sockfd, buff, sizeof(buff));
+				}
 			}
+			// Si se va a estar recibiendo datos de manera continua
 			else{
+				// Como a received block se le ha hecho una suma, si ahora vale 2, es que acabamos de escribir en &data_adc_client[1][0]
+				// y la siguiente iteracion debera ser escrita en &data_adc_client[0][0]
+				if (received_block == 2){ 
+					received_block = 0;
+				}
+				else{
+					received_block = 1;
+				}
 				bzero(buff, MAX);
 				strncpy(buff, CMD_CLIENT[2], sizeof(buff));
 				write(sockfd, buff, sizeof(buff));
@@ -138,12 +152,29 @@ int client_TCP()
 				else if(infonum == 3){
 					M_client = atoi(aux_str);
 					printf("	M: %d\n", M_client);
+					if (M_client == -1){
+						printf("		Transmision de datos continua\n");
+						demo = 1;
+					}
 				}
 				infonum++;
 			}
 			// Una vez se sabe el tamaño de la transmision, se puede asignar memoria dinamica para guardar la cantidad de datos necesaria
 			ndata_adc_client = nblock_adc_client * nchan_adc_client;
 			printf("	Tamaño ndata: %d\n", ndata_adc_client);
+			printf("Valores recibidos\n");
+			printf("	| ");
+			n = 0;
+			for (int j=0;j<nchan_adc_client;j++) {
+				n += chan_no(enchan_adc_client>>n);
+				printf("  AI%d  | ", n);
+			}
+			printf("\n");
+
+			if (demo == 1){
+				M_client = 2;
+			}
+			
 			/* allocate rows */
 			if((data_adc_client = malloc(M_client * sizeof(int16_t *))) == NULL){
 				printf("Failed to allocate rows");
