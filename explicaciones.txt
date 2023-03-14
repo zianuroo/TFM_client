@@ -1,3 +1,6 @@
 
-Se añade un trozo de programa para crear un log que avise donde han ocurrido 
-los fallos de lectura del ADC. En que canal y en que dato.
+
+VERSION 3:
+Partiendo del cliente_completo v2
+    - Se añade un trozo de programa para crear un log que avise donde han ocurrido 
+    los fallos de lectura del ADC. En que canal y en que dato.

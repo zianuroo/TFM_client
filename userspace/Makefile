@@ -19,6 +19,9 @@ EXEDIR := ../
 
 # Files to compile
 OBJ1 := dataBank.o \
+		client_funcs.o \
+		client_TCP.o \
+		client_UDP.o \
 		client.o
 
 OBJ := $(patsubst %,$(OBJ_PATH)%,$(OBJ1))
