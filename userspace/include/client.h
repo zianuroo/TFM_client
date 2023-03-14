@@ -7,6 +7,7 @@
 #define SA struct sockaddr
 
 #define SERVER_ADDRESS "192.168.137.212"
+#define MAX 128
 
 extern char *CMD_CLIENT[];
 extern char *CMD_SERVER[];

@@ -1,5 +1,3 @@
-
-
 #include <arpa/inet.h> // inet_addr()
 #include <netdb.h>
 #include <math.h>
@@ -18,8 +16,7 @@
 #include "../include/client.h"
 #include "../include/client_funcs.h"
 
-
-int client_UDP()
+int client_UDP(int argc, char *argv[])
 {
 	int sockfd;
 	struct sockaddr_in servaddr;
@@ -32,11 +29,74 @@ int client_UDP()
 	char delim[] = " ";
 	int demo = 0;
 	
-	uint16_t nblock_adc_client; 	// Define el tamaño del bloque de datos de un canal
+	uint16_t nblock_adc_client = 201; 	// Define el tamaño del bloque de datos de un canal
 	uint8_t nchan_adc_client;	// Define el numero de canales activados [0 - 8]
-	int16_t M_client;		// Define cuantas transmisiones habra
+	int16_t M_client = -1;		// Define cuantas transmisiones habra
 	uint16_t ndata_adc_client;	// Tamaño de bloque de datos * numero de canales activados
-	uint8_t enchan_adc_client;	// Define que canales son los que estan activados [0 - 255]
+	uint8_t enchan_adc_client = 1;	// Define que canales son los que estan activados [0 - 255]
+	uint32_t spi_speed_client = 11000000;	// In bits per second, default 11000000
+	float fadc_client=25e3;
+	int newnice_client = -15;
+
+	for (int i=1;i<argc;i++) {
+
+		if (strcmp(argv[i],"-a")==0) {
+			i++;
+			enchan_adc_client = atoi(argv[i]);
+		}
+		else if (strcmp(argv[i],"-M")==0) {
+			i++;
+			M_client = atoi(argv[i]);
+			demo = 0;
+		}
+		else if (strcmp(argv[i],"-NBLOCK_ADC")==0) {
+			i++;
+			nblock_adc_client = atoi(argv[i]);
+		}
+		else if (strcmp(argv[i],"-SPI_SPEED")==0) {
+			i++;
+			spi_speed_client = atoi(argv[i]) * 1000000;
+		}
+		else if (strcmp(argv[i],"-fadc")==0) {
+			i++;
+			fadc_client = atoi(argv[i]) * 1000;
+		}
+		else if (strcmp(argv[i],"-prio")==0) {
+			i++;
+			newnice_client = atoi(argv[i]);
+		}
+		else {
+		}
+	}
+
+	// Se crea un string para mandar toda la informacion via RDDATA
+	char enchan_adc_client_info[MAX];
+	char M_client_info[MAX];
+	char nblock_adc_client_info[MAX];
+	char spi_speed_client_info[MAX];
+	char fadc_client_info[MAX];
+	char newnice_client_info[MAX];
+
+	sprintf(enchan_adc_client_info, "%d", enchan_adc_client);
+	sprintf(M_client_info, "%d", M_client);
+	sprintf(nblock_adc_client_info, "%d", nblock_adc_client);
+	sprintf(spi_speed_client_info, "%d", spi_speed_client);
+	sprintf(fadc_client_info, "%f", fadc_client);
+	sprintf(newnice_client_info, "%d", newnice_client);
+
+	char info[MAX];
+	sprintf(info," ");
+	strcat(info,enchan_adc_client_info);
+	strcat(info," ");
+	strcat(info,M_client_info);
+	strcat(info," ");
+	strcat(info,nblock_adc_client_info);
+	strcat(info," ");
+	strcat(info,spi_speed_client_info);
+	strcat(info," ");
+	strcat(info,fadc_client_info);
+	strcat(info," ");
+	strcat(info,newnice_client_info);
 
 	// socket create and verification
 	sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);  // UDP: SOCK_DGRAM
@@ -61,13 +121,14 @@ int client_UDP()
 		if (iteration == 1) {
 			bzero(buff, MAX);
 			strncpy(buff, CMD_CLIENT[0], sizeof(buff));
+			strcat(buff,info);
 			// Send the message to server:
 			if(sendto(sockfd, buff, sizeof(buff), 0, (SA*)&servaddr, len) < 0){
 				printf("Unable to send message\n");
 				
 			}
 			else{
-				//printf("Command sent: %s\n", buff);
+				printf("Command sent: %s\n", buff);
 			}
 			iteration++;
 		}

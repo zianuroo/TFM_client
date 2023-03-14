@@ -24,22 +24,25 @@ int16_t **data_adc_client = NULL;
 
 
 int main(int argc, char *argv[]){
+
 	int protocolo = 0;
 	int end = 1;
-	
+
 	for (int i=1;i<argc;i++) {
 		if (strcmp(argv[i],"-UDP")==0) {
 			protocolo = 1;
+		}
+		else {
 		}
 	}
 	
 	if (protocolo == 0){
 		printf("Protocolo: TCP\n");
-		end = client_TCP();
+		end = client_TCP(argc, argv);
 	}
 	else{
 		printf("Protocolo: UDP\n");	
-		end = client_UDP();
+		end = client_UDP(argc, argv);
 	}
 	
 	if (end  == 0){
